@@ -6,7 +6,7 @@ import scipy.integrate as integrate
 
 basis_satz = [alpha for alpha in np.logspace(-4,4,19)]
 
-c=[float(i) for i in range(1,19)]
+c=[float(i) for i in range(1,20)]
 
 def den_norm(c):
     return sum([i for i in c])
@@ -25,15 +25,15 @@ def rho(c,x):
 
 
 def kinetische_energie(rho,c,x):
-    # (3 \pi^2)^{3/2} \frac{3}{10} \rho^{\frac{5}{3}}
-    return (3*pi**2)**(3/2.)*3/10.*rho(c,x)**(5/3.)
+    # (3 \pi^2)^{3/2} \frac{3}{10} \rho^{\frac{5}{3}} Yang-Parr p.108
+    return (3*pi**2)**(2/3.)*3/10.*rho(c,x)**(5/3.)
 
 
 def gaussian_kernpotential_energie(c):
     # use boys function trick for coulomb energy
-    V_eK =0
-    for alpha in  basis_satz:
-        V_eK += -1*sqrt(4.0*alpha/pi)
+    V_eK=0
+    for i,alpha in enumerate(basis_satz):
+        V_eK += c[i]*-1*sqrt(4.0*alpha/pi)
     return V_eK
 
 
@@ -42,11 +42,9 @@ def gaussian_kernpotential_energie(c):
 
 # checking if rho is defined properly 
 result = integrate.quad(lambda x: 4*pi*x**2*rho(c,x),0,np.inf)
-#print(result[0])
 
 # checking if functions are defined properly 
 result = integrate.quad(lambda x: 4*pi*x**2*(basis_satz[1]/pi)**(3./2.)*exp(-basis_satz[1]*x**2),0,np.inf)
-
 
 # E_{TF}[\rho] = 4 \pi \int_0^{\infty} dr r**2 e_{TF}[\rho] 
 V_TF = integrate.quad(lambda x: 4*pi*x**2*kinetische_energie(rho,c,x),0,np.inf)
@@ -71,11 +69,13 @@ if plot:
     plt.plot(r,EK_plot)
     plt.show()
 
-spikyness = [i for i in np.linspace(4,-4,1000)] 
+#spikyness = [i for i in np.linspace(1,-4,1000)] 
+spikyness = [i for i in np.linspace(1,-4,1000)] 
 
 
 for spike in spikyness:
-    basis_satz = [alpha for alpha in np.logspace(spike,spike-4,19)]
+    #basis_satz = [alpha for alpha in np.logspace(spike+2,spike-2,19)]
+    basis_satz = [alpha for alpha in np.logspace(spike+1.5,spike-1.5,19)]
     V_Ke = gaussian_kernpotential_energie(c)
     V_TF = integrate.quad(lambda x: 4*pi*x**2*kinetische_energie(rho,c,x),0,np.inf)
     print(spike, spike+8, V_Ke, V_TF[0])
