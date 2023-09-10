@@ -24,10 +24,12 @@ def rho(c,x):
     return p
 
 
-def kinetische_energie(rho,c,x):
+def kinetischer_energie_integrand(c,x):
     # (3 \pi^2)^{3/2} \frac{3}{10} \rho^{\frac{5}{3}} Yang-Parr p.108
     return (3*pi**2)**(2/3.)*3/10.*rho(c,x)**(5/3.)
 
+def kinetische_energie(c):
+    return integrate.quad(lambda x: 4*pi*x**2*kinetischer_energie_integrand(c,x),0,np.inf)
 
 def gaussian_kernpotential_energie(c):
     # use boys function trick for coulomb energy
@@ -36,6 +38,8 @@ def gaussian_kernpotential_energie(c):
         V_eK += c[i]*-1*sqrt(4.0*alpha/pi)
     return V_eK
 
+def total_energy():
+    return gaussian_kernpotential_energie(c)+kinetischer_energie_integrand()
 
 
 
@@ -47,7 +51,7 @@ result = integrate.quad(lambda x: 4*pi*x**2*rho(c,x),0,np.inf)
 result = integrate.quad(lambda x: 4*pi*x**2*(basis_satz[1]/pi)**(3./2.)*exp(-basis_satz[1]*x**2),0,np.inf)
 
 # E_{TF}[\rho] = 4 \pi \int_0^{\infty} dr r**2 e_{TF}[\rho] 
-V_TF = integrate.quad(lambda x: 4*pi*x**2*kinetische_energie(rho,c,x),0,np.inf)
+V_TF = integrate.quad(lambda x: 4*pi*x**2*kinetischer_energie_integrand(c,x),0,np.inf)
 
 
 
@@ -59,7 +63,7 @@ if plot:
     values = get_values(r,c)
     EK_plot = []
     for x in r:
-        EK_plot.append(kinetische_energie(rho,c,x))
+        EK_plot.append(kinetischer_energie_integrand(c,x))
     def get_values(r,c):
         values = []
         for x in r:
@@ -69,14 +73,21 @@ if plot:
     plt.plot(r,EK_plot)
     plt.show()
 
-#spikyness = [i for i in np.linspace(1,-4,1000)] 
 spikyness = [i for i in np.linspace(1,-4,1000)] 
 
 
+# run through a number of basis sets, desribing very dense to very disperse charge blobs for Hydrogen, to plot sharpness against energy, to visualize the minimum 
 for spike in spikyness:
     #basis_satz = [alpha for alpha in np.logspace(spike+2,spike-2,19)]
     basis_satz = [alpha for alpha in np.logspace(spike+1.5,spike-1.5,19)]
     V_Ke = gaussian_kernpotential_energie(c)
-    V_TF = integrate.quad(lambda x: 4*pi*x**2*kinetische_energie(rho,c,x),0,np.inf)
+    V_TF = kinetische_energie(c)
+    #integrate.quad(lambda x: 4*pi*x**2*kinetischer_energie_integrand(c,x),0,np.inf)
     print(spike, spike+8, V_Ke, V_TF[0])
+
+# optimise the basis set coeficients to find the energy minimum for Hydrogen
+from scipy.optimize import minimize
+
+
+
 
