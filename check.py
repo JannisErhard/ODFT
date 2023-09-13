@@ -16,10 +16,9 @@ def gaussian(alpha,x):
 
 def rho(c,x):
     # density as expansion in basis set 
-    p_norm = sum(c)
     p = 0
     for c_i,alpha in zip(c,basis_satz):
-        p += c_i/p_norm*gaussian(alpha,x)
+        p += c_i*gaussian(alpha,x)
     return p
 
 
@@ -29,8 +28,10 @@ def kinetischer_energie_integrand(f,c,x):
 
 def kinetische_energie(c):
     # normal version
-    res = integrate.quad(lambda x: 4*pi*x**2*kinetischer_energie_integrand(rho,c,x),0,np.inf)
-    return res[0]
+    res = integrate.quad(lambda x: 4*pi*x**2*kinetischer_energie_integrand(rho,c,x),1E-1,np.inf)[0]
+    res += integrate.quad(lambda x: 4*pi*x**2*kinetischer_energie_integrand(rho,c,x),1E-5,1E-1)[0] 
+    #res += integrate.quad(lambda x: 4*pi*x**2*kinetischer_energie_integrand(rho,c,x),0,1E-5)[0] 
+    return res
 
 def gaussian_kernpotential_energie(c):
     # use boys function trick for coulomb energy
@@ -46,7 +47,7 @@ def total_energy(c):
     E_c = gaussian_kernpotential_energie(c)
     E_tot = E_c + E_kin
     print(f"{E_c=} {E_kin=} {E_tot=}","Virial=",2*E_kin/E_c)
-    print(integrate.quad(lambda x: 4*pi*x**2*rho(c,x),0,np.inf)[0])
+    #print(integrate.quad(lambda x: 4*pi*x**2*rho(c,x),0,np.inf)[0])
     return E_tot
 
 
@@ -54,9 +55,9 @@ basis_set_size = 20
 n = basis_set_size
 basis_satz = [alpha for alpha in np.logspace(-1,8,n)]
 
-basis_set_size = 100
+basis_set_size = 10
 n = basis_set_size
-basis_satz = [1.7642452031482*2**i for i in np.linspace(-18,2,n)]
+basis_satz = [1.7642452031482*2**i for i in np.linspace(-4,4,n)]
 #basis_satz = [1.7642452031482/4.,1.7642452031482/2.,1.7642452031482,1.7642452031482*2,1.7642452031482*4]
 
 c=[float(i) for i in range(1,n+1)]
@@ -108,7 +109,7 @@ if spike_test:
 
 l_1D_test=False
 if l_1D_test:
-    spikyness = [i for i in np.logspace(-4,4,1000)] 
+    spikyness = [i for i in np.logspace(-4,10,1000)] 
     #  just one function, steepness test 
     for spike in spikyness:
         basis_satz = [spike]
@@ -121,7 +122,7 @@ if l_1D_test:
 # optimise the basis set coeficients to find the energy minimum for Hydrogen
 from scipy.optimize import minimize
 l_Optimize = True
-plot = True 
+plot = True
 
 if l_Optimize:
     c0 = np.array(c)
@@ -132,20 +133,24 @@ if l_Optimize:
     
     norm_final = sum(res.x)
     c_f = [i/norm_final for i in res.x]
-    
+
+    print("SUM CF:",sum(c_f))
+
     if True:
         for i,j in zip(c_f,basis_satz):
             print(i,j)
 
-print(integrate.quad(lambda x: 4*pi*x**2*H_den(x),0,np.inf))
-print(integrate.quad(lambda x: 4*pi*x**2*rho(res.x,x),0,np.inf))
+    print(integrate.quad(lambda x: 4*pi*x**2*H_den(x),0,np.inf))
+    print("final density integral:",integrate.quad(lambda x: 4*pi*x**2*rho(c_f,x),0,np.inf))
 
 if plot:
     r = [float(i/19) for i in range(-190,190)]
     rho_initial = [rho(c_0,x) for x in r ]
     rho_final = [rho(c_f,x) for x in r ]
     Reference = [H_den(x) for x in r ]
+    Gauss = [gaussian(1,x) for x in r ]
     plt.plot(r,rho_initial)
     plt.plot(r,rho_final)
     plt.plot(r,Reference)
+    plt.plot(r,Gauss)
     plt.show()
