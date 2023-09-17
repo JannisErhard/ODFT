@@ -1,11 +1,10 @@
-from math import exp, pi, sqrt, sin
+from math import exp, pi
 from scipy.optimize import minimize
 import numpy as np
 import matplotlib.pyplot as plt  
 import scipy.integrate as integrate
-import time
 
-from shared_stuff import *
+from shared_stuff import basis_satz, n
 from energies import kinetische_energie, gaussian_kernpotential_energie, gaussian_total_energy, total_energy
 from densities import rho, gaussian
 
@@ -22,12 +21,10 @@ def difference_integral(c):
     return res
 
 
-print(n)
 
 c=[float(i) for i in range(1,n+1)]
 norm = sum(c)
 c_0 = [i/norm for i in c]
-
 
 l_Optimize = True
 l_fit_densities = True
