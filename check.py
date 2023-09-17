@@ -1,4 +1,5 @@
 from math import exp, pi, sqrt, sin
+from scipy.optimize import minimize
 import numpy as np
 import matplotlib.pyplot as plt  
 import scipy.integrate as integrate
@@ -47,23 +48,30 @@ def total_energy(c):
     E_c = gaussian_kernpotential_energie(c)
     E_tot = E_c + E_kin
     print(f"{E_c=} {E_kin=} {E_tot=}","Virial=",2*E_kin/E_c)
-    #print(integrate.quad(lambda x: 4*pi*x**2*rho(c,x),0,np.inf)[0])
     return E_tot
 
+def difference_integral(c):
+    norm = sum(c)
+    c = [i/norm for i in c]
+    res = integrate.quad(lambda x: 4*pi*x**2*abs(rho(c,x)-H_den(x)),1E-1,np.inf)[0]
+    res += integrate.quad(lambda x: 4*pi*x**2*abs(rho(c,x)-H_den(x)),1E-5,1E-1)[0] 
+    return res
 
-basis_set_size = 20
-n = basis_set_size
-basis_satz = [alpha for alpha in np.logspace(-1,8,n)]
+
+
 
 basis_set_size = 10
 n = basis_set_size
-basis_satz = [1.7642452031482*2**i for i in np.linspace(-4,4,n)]
-#basis_satz = [1.7642452031482/4.,1.7642452031482/2.,1.7642452031482,1.7642452031482*2,1.7642452031482*4]
-
+basis_satz = [1.7642452031482*2**i for i in np.linspace(-4,5,n)]
+basis_satz = [1.7642452031482/4.,1.7642452031482/2.,1.7642452031482,1.7642452031482*2,1.7642452031482*4]
 c=[float(i) for i in range(1,n+1)]
 norm = sum(c)
 c_0 = [i/norm for i in c]
 
+
+l_Optimize = False
+l_fit_densities = False
+plot = False
 
 
 # checking if rho is defined properly 
@@ -77,30 +85,10 @@ V_TF =  kinetische_energie(c)
 
 
 
-
-## plot density and kinetic energy functional
-plot = False 
-if plot:
-    r = [float(i/19) for i in range(-190,190)]
-    values = get_values(r,c)
-    EK_plot = []
-    for x in r:
-        EK_plot.append(kinetischer_energie_integrand(c,x))
-    def get_values(r,c):
-        values = []
-        for x in r:
-            values.append(rho(c,x))
-        return values 
-    plt.plot(r,values)
-    plt.plot(r,EK_plot)
-    plt.show()
-
-spikyness = [i for i in np.linspace(1,-4,1000)] 
-
-
 # run through a number of basis sets, desribing very dense to very disperse charge blobs for Hydrogen, to plot sharpness against energy, to visualize the minimum 
 spike_test=False
 if spike_test:
+    spikyness = [i for i in np.linspace(1,-4,1000)] 
     for spike in spikyness:
         basis_satz = [alpha for alpha in np.logspace(spike+1.5,spike-1.5,19)]
         V_Ke = gaussian_kernpotential_energie(c)
@@ -120,9 +108,20 @@ if l_1D_test:
 
 
 # optimise the basis set coeficients to find the energy minimum for Hydrogen
-from scipy.optimize import minimize
-l_Optimize = True
-plot = True
+
+if l_fit_densities:
+    bnds = ((0, 1.0),)*n # only use positive numbers since there can not be any negative region in the density
+    c0 = np.array(c)
+    res = minimize(difference_integral,c,bounds=bnds)
+
+    norm_final = sum(res.x)
+    c_f = [i/norm_final for i in res.x]
+    print("SUM CF:",sum(c_f))
+    if True:
+        for i,j in zip(c_f,basis_satz):
+            print(i,j)
+    print("final density integral:",integrate.quad(lambda x: 4*pi*x**2*rho(c_f,x),0,np.inf))
+
 
 if l_Optimize:
     c0 = np.array(c)
@@ -144,12 +143,14 @@ if l_Optimize:
     print("final density integral:",integrate.quad(lambda x: 4*pi*x**2*rho(c_f,x),0,np.inf))
 
 if plot:
+    print(total_energy(c_f))
+    print("E_kin, Hden",integrate.quad(lambda x: 4*pi*x**2*(3*pi**2)**(2/3.)*3/10.*H_den(x)**(5/3.) ,0,np.inf))
     r = [float(i/19) for i in range(-190,190)]
     rho_initial = [rho(c_0,x) for x in r ]
     rho_final = [rho(c_f,x) for x in r ]
     Reference = [H_den(x) for x in r ]
     Gauss = [gaussian(1,x) for x in r ]
-    plt.plot(r,rho_initial)
+    #plt.plot(r,rho_initial)
     plt.plot(r,rho_final)
     plt.plot(r,Reference)
     plt.plot(r,Gauss)
